@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Saúde da Mulher - IA Multimodal</title>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1500.0.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
+        h1 { color: #d81b60; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; }
+        .upload-section { border: 2px dashed #d81b60; padding: 40px; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
+        .upload-section:hover { background: #fff0f5; }
+        input[type="file"] { display: none; }
+        .btn { background-color: #d81b60; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 20px; transition: background 0.3s; }
+        .btn:hover { background-color: #ad1457; }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        #status { margin-top: 20px; font-weight: bold; color: #d81b60; }
+        #result { margin-top: 30px; text-align: left; background: #fff; padding: 20px; border-radius: 8px; border-left: 5px solid #d81b60; display: none; white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #d81b60; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; display: none; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Saúde da Mulher IA</h1>
+    <p>Upload de vídeo para análise multimodal de risco (Vídeo, Áudio e Texto)</p>
+
+    <div class="upload-section" onclick="document.getElementById('videoFile').click()">
+        <span id="fileName">Clique para selecionar um vídeo (MP4)</span>
+        <input type="file" id="videoFile" accept="video/mp4" onchange="updateFileName()">
+    </div>
+
+    <button class="btn" id="uploadBtn" onclick="uploadVideo()">Iniciar Análise Multimodal</button>
+    
+    <div class="loader" id="loader"></div>
+    <div id="status"></div>
+    <div id="result"></div>
+</div>
+
+<script>
+    // CONFIGURAÇÕES AWS (Substituir pelos seus dados)
+    const BUCKET_NAME = 'dvd-upload-videos';
+    const REGION = 'us-east-1';
+    const IDENTITY_POOL_ID = 'us-east-1:2adcf785-2fa0-4338-88ef-a88cc6b7270c'; // Necessário para Cognito Identity
+
+    AWS.config.update({
+        region: REGION,
+        credentials: new AWS.CognitoIdentityCredentials({
+            IdentityPoolId: IDENTITY_POOL_ID
+        })
+    });
+
+    const s3 = new AWS.S3({ apiVersion: '2006-03-01', params: { Bucket: BUCKET_NAME } });
+
+    function updateFileName() {
+        const file = document.getElementById('videoFile').files[0];
+        if (file) {
+            document.getElementById('fileName').innerText = file.name;
+        }
+    }
+
+    async function uploadVideo() {
+        const fileInput = document.getElementById('videoFile');
+        const file = fileInput.files[0];
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const loader = document.getElementById('loader');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        if (!file) {
+            alert('Por favor, selecione um vídeo primeiro.');
+            return;
+        }
+
+        uploadBtn.disabled = true;
+        loader.style.display = 'block';
+        statusDiv.innerText = 'Fazendo upload do vídeo para o S3...';
+        resultDiv.style.display = 'none';
+
+        const params = {
+            Key: 'uploads/' + file.name,
+            ContentType: file.type,
+            Body: file
+        };
+
+        try {
+            // 1. Upload para S3
+            await s3.upload(params).promise();
+            statusDiv.innerText = 'Vídeo enviado! Processando análise multimodal na AWS...';
+
+            // 2. Monitorar o relatório final no S3
+            // Nota: Em uma solução real, usaríamos WebSocket ou Long Polling via API Gateway.
+            // Aqui vamos simular aguardando o arquivo de relatório aparecer.
+            const reportKey = 'reports/' + file.name.split('.')[0] + '_report.json';
+            pollForReport(reportKey);
+
+        } catch (err) {
+            console.error(err);
+            statusDiv.innerText = 'Erro no upload: ' + err.message;
+            uploadBtn.disabled = false;
+            loader.style.display = 'none';
+        }
+    }
+
+    async function pollForReport(reportKey) {
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const loader = document.getElementById('loader');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        let attempts = 0;
+        const maxAttempts = 30; // 5 minutos aprox.
+
+        const interval = setInterval(async () => {
+            attempts++;
+            statusDiv.innerText = `Analisando vídeo e áudio... (Tentativa ${attempts})`;
+
+            try {
+                const data = await s3.getObject({ Bucket: BUCKET_NAME, Key: reportKey }).promise();
+                const reportContent = JSON.parse(data.Body.toString());
+                
+                clearInterval(interval);
+                loader.style.display = 'none';
+                statusDiv.innerText = 'Análise Concluída!';
+                resultDiv.innerText = typeof reportContent === 'string' ? reportContent : JSON.stringify(reportContent, null, 2);
+                resultDiv.style.display = 'block';
+                uploadBtn.disabled = false;
+
+            } catch (err) {
+                if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                    loader.style.display = 'none';
+                    statusDiv.innerText = 'Tempo limite excedido. Verifique o console da AWS Lambda.';
+                    uploadBtn.disabled = false;
+                }
+            }
+        }, 10000); // Checa a cada 10 segundos
+    }
+</script>
+
+</body>
+</html>
