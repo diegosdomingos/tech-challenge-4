@@ -1,59 +1,102 @@
-# tech-challenge-4: Sistema de Detecção de Violência Doméstica com IA Multimodal (AWS Serverless)
+# 🛡️ Tech Challenge 4  
+## Sistema de Detecção de Violência Doméstica com IA Multimodal (AWS Serverless)
 
-## Visão Geral
+---
 
-Este projeto implementa um sistema de Inteligência Artificial (IA) multimodal para detecção de sinais de violência doméstica em contextos de saúde da mulher, utilizando uma arquitetura **serverless** na Amazon Web Services (AWS). A solução analisa vídeos e áudios para identificar padrões comportamentais e emocionais indicativos de abuso, gerando um relatório clínico detalhado.
+## 📌 Visão Geral
 
-## Características Principais
+Este projeto implementa um sistema de **Inteligência Artificial Multimodal** para detecção de possíveis sinais de violência doméstica em contextos relacionados à saúde da mulher, utilizando uma arquitetura totalmente **serverless na Amazon Web Services (AWS)**.
 
--   **Análise de Vídeo**: Utiliza **Amazon Rekognition** para detecção de emoções faciais e atividades.
--   **Análise de Áudio**: Converte áudio em texto com **Amazon Transcribe**.
--   **Análise de Texto**: Analisa sentimento e entidades na transcrição com **Amazon Comprehend**.
--   **Fusão Multimodal e Geração de Relatório**: Utiliza **Amazon Bedrock** (com Claude 3) para interpretar os resultados de vídeo, áudio e texto, gerando um score de risco e um relatório clínico.
--   **Arquitetura Serverless**: Implementado com **AWS Lambda**, **S3**, **API Gateway** e **Cognito Identity** para escalabilidade, baixo custo e fácil manutenção.
--   **Frontend Simples**: Uma página HTML/JS para upload de vídeos e visualização dos resultados.
+A solução realiza análise integrada de **vídeo, áudio e texto**, combinando reconhecimento de emoções faciais, análise de sentimento e interpretação contextual para gerar:
 
-## Arquitetura
+- 📊 **Score de risco (0–100)**
+- 🧠 **Classificação do nível de risco**
+- 📝 **Relatório analítico detalhado**
+- 🎥 **Frames relevantes que fundamentam a análise**
 
-```mermaid
-graph TD
-    A[Frontend Web (HTML/JS)] --> B(API Gateway: Upload Video);
-    B --> C[AWS S3: Video Upload Bucket];
-    C -- Evento: New Object Created --> D(AWS Lambda: Orchestrator Function);
+O objetivo é demonstrar como a IA pode apoiar processos de triagem e avaliação de risco de forma escalável, automatizada e auditável.
 
-    subgraph Análise de Vídeo
-        D -- Chama --> E[Amazon Rekognition: StartFaceDetection];
-        E -- Resultados Assíncronos --> F[AWS S3: Rekognition Output Bucket];
-    end
+---
 
-    subgraph Análise de Áudio
-        D -- Extrai Áudio (via FFmpeg na Lambda) --> G[AWS S3: Audio Extract Bucket];
-        G -- Chama --> H[Amazon Transcribe: StartTranscriptionJob];
-        H -- Resultados Assíncronos --> I[AWS S3: Transcribe Output Bucket];
-    end
+## 🚀 Principais Funcionalidades
 
-    subgraph Análise de Texto
-        D -- Lê Transcrição do S3 --> J[Amazon Comprehend: DetectSentiment/Entities];
-    end
+### 🎥 Análise de Vídeo
+Utiliza **Amazon Rekognition** para:
+- Detecção de faces
+- Identificação de emoções faciais
+- Extração de timestamps relevantes
 
-    subgraph Fusão Multimodal e Geração de Relatório
-        D -- Agrega Resultados --> K[Amazon Bedrock: InvokeModel (Claude 3)];
-        K -- Gera Relatório Clínico --> L[AWS S3: Report Output Bucket];
-    end
+### 🎙️ Análise de Áudio
+Utiliza **Amazon Transcribe** para:
+- Conversão de fala em texto (pt-BR)
 
-    L --> M[API Gateway: Get Report];
-    M --> A;
-```
+### 📖 Análise de Texto
+Utiliza **Amazon Comprehend** para:
+- Análise de sentimento
+- Identificação de polaridade emocional
 
-## Tecnologias Utilizadas
+### 🧠 Fusão Multimodal
+Utiliza **Amazon Bedrock (Claude 3)** para:
+- Interpretação integrada dos dados de vídeo, áudio e texto
+- Geração de score de risco
+- Produção de relatório explicativo
+- Justificativa baseada em evidências visuais e textuais
 
--   **AWS S3**: Armazenamento de objetos.
--   **AWS Lambda**: Computação serverless para orquestração.
--   **Amazon API Gateway**: Exposição de endpoints HTTP.
--   **Amazon Rekognition**: Análise de vídeo (detecção de faces e emoções).
--   **Amazon Transcribe**: Transcrição de áudio para texto.
--   **Amazon Comprehend**: Análise de sentimento e entidades em texto.
--   **Amazon Bedrock**: Geração de texto (Claude 3) para fusão multimodal e relatórios.
--   **Amazon Cognito Identity**: Autenticação para acesso ao S3 via frontend.
--   **Python (Boto3)**: SDK para interação com serviços AWS.
--   **HTML/JavaScript**: Frontend para interação do usuário.
+### 🖼️ Evidências Visuais
+- Extração automática de frames do vídeo utilizando FFmpeg
+- Exibição de frames relevantes alinhados ao nível de risco identificado
+
+---
+
+## 🏗️ Arquitetura
+
+A solução foi construída utilizando uma arquitetura **100% serverless**, garantindo escalabilidade, baixo custo operacional e simplicidade de manutenção.
+
+### Serviços AWS Utilizados:
+
+- **Amazon S3** – Armazenamento de vídeos, relatórios e frames  
+- **AWS Lambda** – Orquestração do pipeline de processamento  
+- **Amazon API Gateway** – Exposição de endpoints HTTP  
+- **Amazon Rekognition** – Análise de vídeo  
+- **Amazon Transcribe** – Transcrição de áudio  
+- **Amazon Comprehend** – Análise de sentimento  
+- **Amazon Bedrock (Claude 3)** – Geração de relatório e análise multimodal  
+- **Amazon Cognito Identity** – Autenticação no frontend  
+- **Python (Boto3)** – Integração com serviços AWS  
+- **HTML / JavaScript** – Interface do usuário  
+
+---
+
+## 🧪 Como Utilizar
+
+1. Acesse a URL disponibilizada no PDF do Tech Challenge.
+2. Faça upload de um vídeo em formato `.mp4`.
+3. Aguarde o processamento da análise multimodal.
+4. Visualize:
+   - Score de risco
+   - Relatório detalhado
+   - Frames relevantes que embasam a avaliação
+
+---
+
+## 📁 Vídeos de Exemplo
+
+O repositório contém a pasta: /video_samples
+
+Com vídeos utilizados nos testes do sistema:
+
+- `relato_real_1.mp4` – Trecho de relato real extraído do YouTube  
+- `relato_real_2.mp4` – Trecho de relato real extraído do YouTube  
+- `relato_IA_risco_alto.mp4` – Vídeo gerado por IA (HeyGen) simulando alto risco  
+- `relato_IA_risco_medio.mp4` – Vídeo gerado por IA (HeyGen) simulando risco médio  
+- `relato_IA_risco_baixo.mp4` – Vídeo gerado por IA (HeyGen) simulando baixo risco  
+
+Esses arquivos podem ser utilizados para validação e demonstração do funcionamento do sistema.
+
+---
+
+## ⚠️ Observações
+
+- O sistema tem finalidade educacional e demonstrativa.
+- Não substitui avaliação profissional especializada.
+- Os vídeos gerados por IA foram utilizados para simulação controlada de cenários.
